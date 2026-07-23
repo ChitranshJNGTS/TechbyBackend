@@ -5,8 +5,8 @@ const http = require("http");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-const { Server } = require("socket.io");
-const chatSocket = require("./socket/chatSocket.js");
+const path = require("path");
+
 
 // ================= CONFIG =================
 dotenv.config();
@@ -18,6 +18,7 @@ connectDB();
 // ================= APP =================
 const app = express();
 
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // ================= SECURITY MIDDLEWARE =================
 app.use(helmet());
 
@@ -35,7 +36,7 @@ app.use(cookieParser());
 
 // ================= CORS =================
 const allowedOrigins = [
-  "http://localhost:5175",
+  "http://localhost:5173",
   "https://glittering-banoffee-98234c.netlify.app",
   "https://techby.in",
 ];
@@ -68,23 +69,22 @@ cron.schedule("0 0 * * *", () => {
 
 // ================= ROUTES =================
 const authRoutes = require("./routes/AuthRoutes");
-const productRoutes = require("./routes/ProductRoutes");
-const OrdersRoutes = require("./routes/orders");
-const listingRoutes = require("./routes/listingRoutes");
-const productStatsRoutes = require("./routes/productStatsRoutes");
+const jobRoutes = require("./routes/JobRoutes");
+const applicationRoutes = require("./routes/applicationRoutes");
 const userRoutes = require("./routes/UserRoutes");
-const locationRoutes = require("./routes/location");
-const chatRoutes = require("./routes/ChatRoutes");
+const demoInterviewRoutes = require("./routes/DemoInterviewRoutes");
+const paymentRoutes=require("./routes/paymentRoutes");
+
+
+
 
 // API PREFIXES
+app.use("/api/payment",paymentRoutes);
+app.use("/api/interviews", demoInterviewRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/order", OrdersRoutes);
-app.use("/api/listing", listingRoutes);
-app.use("/api/product-stats", productStatsRoutes);
-app.use("/api/user", userRoutes);
-app.use("/api/location", locationRoutes);
-app.use("/api/chat", chatRoutes);
+app.use("/api/jobs", jobRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/applications", applicationRoutes);
 // ================= HEALTH CHECK =================
 app.get("/", (req, res) => {
   res.send("🚀 Server running successfully");
@@ -99,22 +99,17 @@ app.use((err, req, res, next) => {
     message: "Internal Server Error",
   });
 });
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"))
+);
 
 const PORT = process.env.PORT || 5000;
 
 // ================= SERVER =================
 const server = http.createServer(app);
 
-// ================= SOCKET.IO =================
-const io = new Server(server, {
-  cors: {
-    origin: allowedOrigins,
-    credentials: true,
-  },
-});
 
-// INIT CHAT SOCKET
-chatSocket(io);
 
 // ================= START SERVER =================
 server.listen(PORT, "0.0.0.0", () => {

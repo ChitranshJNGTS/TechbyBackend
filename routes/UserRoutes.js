@@ -1,26 +1,30 @@
 const express = require("express");
 
+const router = express.Router();
+const auth = require("../middleware/authMiddleware");
+const upload = require("../middleware/upload");
 const {
-  signup,
+  register,
   login,
-  profile,
+  uploadResume,
+  getProfile,
+  updateProfile
 } = require("../controllers/userController");
 
-const userMiddleware = require("../middleware/userMiddleware");
 
-const router = express.Router();
+router.put("/update-profile", auth, updateProfile);
+router.get("/profile", auth, getProfile);
 
-
-// routes
-router.post("/signup", signup);
-
-router.post("/login", login);
-
-router.get(
-  "/profile",
-  userMiddleware,
-  profile
+router.put(
+  "/upload-resume",
+  auth,
+  upload.single("resume"),
+  uploadResume
 );
 
+
+router.post("/register", register);
+
+router.post("/login", login);
 
 module.exports = router;
