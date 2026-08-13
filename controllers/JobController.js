@@ -1,5 +1,7 @@
 const Job = require("../models/JobModel");
 
+
+
 // ==========================
 // Create Job
 // ==========================
@@ -7,12 +9,15 @@ exports.createJob = async (req, res) => {
   try {
     const data = req.body;
 
+    // Convert skills string to array
     if (data.skills) {
       data.skills = data.skills
         .split(",")
-        .map((item) => item.trim());
+        .map((item) => item.trim())
+        .filter(Boolean);
     }
 
+    // Cloudinary upload
     if (req.file) {
       data.companyLogo = req.file.path;
     }
@@ -25,6 +30,8 @@ exports.createJob = async (req, res) => {
       job,
     });
   } catch (error) {
+    console.log("Create Job Error:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,

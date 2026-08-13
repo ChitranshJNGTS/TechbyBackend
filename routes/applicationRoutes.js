@@ -1,8 +1,7 @@
 const express = require("express");
 
 const router = express.Router();
-
-const auth = require("../middleware/AuthMiddleware");
+const adminMiddleware = require("../middleware/adminMiddleware");
 
 const {
   applyJob,
@@ -10,9 +9,9 @@ const {
 } = require("../controllers/JobApplication");
 
 // Candidate Apply
-router.post("/apply/:jobId", auth, applyJob);
+router.post("/apply/:jobId", adminMiddleware, applyJob);
 
 // Admin View Applications
-router.get("/all", auth, getAllApplications);
+router.get("/all", adminMiddleware, getAllApplications);
 
 module.exports = router;

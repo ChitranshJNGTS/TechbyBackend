@@ -1,33 +1,33 @@
-// const multer = require('multer');
-
-// // Memory storage, we will upload buffer directly to Cloudinary
-// const storage = multer.memoryStorage();
-// const upload = multer({ storage });
-
-// module.exports = upload;
 const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 
 const uploadPath = path.join(__dirname, "../uploads");
 
+// Create uploads folder if it doesn't exist
 if (!fs.existsSync(uploadPath)) {
-  fs.mkdirSync(uploadPath, { recursive: true });
+  fs.mkdirSync(uploadPath, {
+    recursive: true,
+  });
 }
 
+// Storage configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadPath);
   },
 
   filename: (req, file, cb) => {
-    cb(
-      null,
-      Date.now() + "-" + file.originalname.replace(/\s+/g, "-")
-    );
+    const fileName =
+      Date.now() +
+      "-" +
+      file.originalname.replace(/\s+/g, "-");
+
+    cb(null, fileName);
   },
 });
 
+// File validation
 const fileFilter = (req, file, cb) => {
   const allowed = [
     "application/pdf",
@@ -38,14 +38,19 @@ const fileFilter = (req, file, cb) => {
   if (allowed.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only PDF, DOC and DOCX files are allowed."));
+    cb(
+      new Error("Only PDF, DOC and DOCX files are allowed.")
+    );
   }
 };
 
-module.exports = multer({
+// Multer configuration
+const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024,
+    fileSize: 5 * 1024 * 1024, // 5 MB
   },
 });
+
+module.exports = upload;

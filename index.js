@@ -54,7 +54,7 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-store-token"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Firebase-Token",],
   })
 );
 
