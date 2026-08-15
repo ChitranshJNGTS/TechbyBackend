@@ -40,7 +40,7 @@ const {
   uploadResume,
 } = require("../controllers/UserController");
 
-const protect = require("../middleware/authMiddleware");
+const protect = require("../middleware/AuthMiddleware");
 
 router.post("/profile", protect, createProfile);
 

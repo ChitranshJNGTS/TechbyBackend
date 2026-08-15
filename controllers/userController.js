@@ -220,24 +220,15 @@
 
 
 
-
-
-
-
-
 const User = require("../models/UserModel");
+const cloudinary = require("../config/cloudinary");
 
 // ================= Create Profile =================
-// Firebase handles registration.
-// This function creates the user's MongoDB profile.
 
 exports.createProfile = async (req, res) => {
   try {
     const { name, phone, role } = req.body;
 
-    // Name is required.
-    // Phone is optional because Google login
-    // normally does not provide a phone number.
     if (!name) {
       return res.status(400).json({
         success: false,
@@ -245,11 +236,9 @@ exports.createProfile = async (req, res) => {
       });
     }
 
-    // Firebase UID comes from auth middleware
     const firebaseUid = req.user.uid;
     const email = req.user.email;
 
-    // Check if profile already exists
     const exists = await User.findOne({
       firebaseUid,
     });
@@ -261,7 +250,6 @@ exports.createProfile = async (req, res) => {
       });
     }
 
-    // Create MongoDB profile
     const user = await User.create({
       firebaseUid,
       name,
@@ -377,12 +365,48 @@ exports.uploadResume = async (req, res) => {
       });
     }
 
+    console.log("Resume received:", {
+      name: req.file.originalname,
+      type: req.file.mimetype,
+      size: req.file.size,
+    });
+
+    // ==========================
+    // Upload Resume to Cloudinary
+    // ==========================
+
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: "workscout/resumes",
+          resource_type: "raw",
+          public_id: `${req.user.uid}-${Date.now()}`,
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result);
+          }
+        }
+      );
+
+      stream.end(req.file.buffer);
+    });
+
+    console.log("Resume uploaded to Cloudinary:");
+    console.log(result.secure_url);
+
+    // ==========================
+    // Save Cloudinary URL
+    // ==========================
+
     const user = await User.findOneAndUpdate(
       {
         firebaseUid: req.user.uid,
       },
       {
-        resume: `uploads/${req.file.filename}`,
+        resume: result.secure_url,
       },
       {
         new: true,
@@ -399,6 +423,7 @@ exports.uploadResume = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Resume uploaded successfully.",
+      resume: result.secure_url,
       user,
     });
   } catch (error) {

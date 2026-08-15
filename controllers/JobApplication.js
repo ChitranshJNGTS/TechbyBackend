@@ -8,17 +8,15 @@ const JobApplication = require("../models/JobApplicationModel");
 
 exports.applyJob = async (req, res) => {
   try {
-
-
     const { jobId } = req.params;
-    const userId = req.user.id;
+
+    // Firebase UID
+    const firebaseUid = req.user.uid;
 
     console.log("jobId:", jobId);
-    console.log("userId:", userId);
-    // const { jobId } = req.params;
+    console.log("firebaseUid:", firebaseUid);
 
-    // const userId = req.user.id;
-
+    // Find job
     const job = await Job.findById(jobId);
 
     if (!job) {
@@ -28,8 +26,19 @@ exports.applyJob = async (req, res) => {
       });
     }
 
-    const user = await User.findById(userId);
+    // Find MongoDB user using Firebase UID
+    const user = await User.findOne({
+      firebaseUid,
+    });
 
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User profile not found",
+      });
+    }
+
+    // Check resume
     if (!user.resume) {
       return res.status(400).json({
         success: false,
@@ -37,9 +46,10 @@ exports.applyJob = async (req, res) => {
       });
     }
 
+    // Check duplicate application
     const alreadyApplied = await JobApplication.findOne({
       job: jobId,
-      candidate: userId,
+      candidate: user._id,
     });
 
     if (alreadyApplied) {
@@ -49,23 +59,26 @@ exports.applyJob = async (req, res) => {
       });
     }
 
+    // Create application
     await JobApplication.create({
       job: jobId,
-      candidate: userId,
+      candidate: user._id,
     });
 
     res.status(201).json({
       success: true,
       message: "Application submitted successfully.",
     });
+
   } catch (error) {
+    console.error("Apply Job Error:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
-
 // =========================
 // Get All Applications
 // =========================

@@ -1,55 +1,108 @@
-const fs = require("fs");
-const path = require("path");
+// const multer = require("multer");
+
+// const storage = multer.memoryStorage();
+
+// const fileFilter = (req, file, cb) => {
+//   if (file.fieldname === "companyLogo") {
+//     const allowedTypes = [
+//       "image/jpeg",
+//       "image/jpg",
+//       "image/png",
+//       "image/webp",
+//     ];
+
+//     if (allowedTypes.includes(file.mimetype)) {
+//       return cb(null, true);
+//     }
+
+//     return cb(
+//       new Error("Only JPG, JPEG, PNG and WEBP images are allowed.")
+//     );
+//   }
+
+//   if (file.fieldname === "resume") {
+//     const allowedTypes = [
+//       "application/pdf",
+//       "application/msword",
+//       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+//     ];
+
+//     if (allowedTypes.includes(file.mimetype)) {
+//       return cb(null, true);
+//     }
+
+//     return cb(
+//       new Error("Only PDF, DOC and DOCX files are allowed.")
+//     );
+//   }
+
+//   return cb(new Error("Invalid upload field."));
+// };
+
+// const upload = multer({
+//   storage,
+//   fileFilter,
+//   limits: {
+//     fileSize: 5 * 1024 * 1024,
+//   },
+// });
+
+// module.exports = upload;
+
+
 const multer = require("multer");
 
-const uploadPath = path.join(__dirname, "../uploads");
+const storage = multer.memoryStorage();
 
-// Create uploads folder if it doesn't exist
-if (!fs.existsSync(uploadPath)) {
-  fs.mkdirSync(uploadPath, {
-    recursive: true,
-  });
-}
-
-// Storage configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadPath);
-  },
-
-  filename: (req, file, cb) => {
-    const fileName =
-      Date.now() +
-      "-" +
-      file.originalname.replace(/\s+/g, "-");
-
-    cb(null, fileName);
-  },
-});
-
-// File validation
 const fileFilter = (req, file, cb) => {
-  const allowed = [
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ];
 
-  if (allowed.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(
-      new Error("Only PDF, DOC and DOCX files are allowed.")
+  if (file.fieldname === "companyLogo") {
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (allowedTypes.includes(file.mimetype)) {
+      return cb(null, true);
+    }
+
+    return cb(
+      new Error(
+        "Only JPG, JPEG, PNG and WEBP images are allowed."
+      )
     );
   }
+
+  if (file.fieldname === "resume") {
+
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+
+    if (allowedTypes.includes(file.mimetype)) {
+      return cb(null, true);
+    }
+
+    return cb(
+      new Error(
+        "Only PDF, DOC and DOCX files are allowed."
+      )
+    );
+  }
+
+  return cb(new Error("Invalid upload field."));
 };
 
-// Multer configuration
 const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5 MB
+    fileSize: 5 * 1024 * 1024,
   },
 });
 
