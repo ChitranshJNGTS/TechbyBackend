@@ -38,7 +38,7 @@ const {
   updateProfile,
   getProfile,
   uploadResume,
-} = require("../controllers/UserController");
+} = require("../controllers/userController");
 
 const protect = require("../middleware/AuthMiddleware");
 
