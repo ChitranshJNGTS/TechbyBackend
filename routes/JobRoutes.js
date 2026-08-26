@@ -5,7 +5,7 @@ const router = express.Router();
 const auth = require("../middleware/adminMiddleware");
 const upload = require("../middleware/upload");
 
-const { createJob ,getAllJobs ,getJobById,shareJob } = require("../controllers/JobController");
+const { createJob ,getAllJobs ,getJobById,shareJob,getJobBySlug } = require("../controllers/JobController");
 
 router.post(
   "/create",
@@ -17,6 +17,7 @@ router.post(
 router.get("/", getAllJobs);
 
 // Get Job By Id
+router.get("/slug/:slug", getJobBySlug);
 router.get("/share/:id", shareJob);
 router.get("/:id", getJobById);
 module.exports = router;

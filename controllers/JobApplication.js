@@ -13,8 +13,6 @@ exports.applyJob = async (req, res) => {
     // Firebase UID
     const firebaseUid = req.user.uid;
 
-    console.log("jobId:", jobId);
-    console.log("firebaseUid:", firebaseUid);
 
     // Find job
     const job = await Job.findById(jobId);

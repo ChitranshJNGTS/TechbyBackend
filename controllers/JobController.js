@@ -165,13 +165,36 @@ const Job = require("../models/JobModel");
 const cloudinary = require("../config/cloudinary");
 
 // ==========================
+// Create SEO Friendly Slug
+// ==========================
+const slugify = (text) => {
+  return text
+    ?.toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+};
+
+const generateJobSlug = (job) => {
+  const title = slugify(job.jobTitle);
+  const company = slugify(job.companyName);
+  const category = slugify(job.category);
+
+  return `${title}-${company}-${category}-${job._id}`;
+};
+
+// ==========================
 // Create Job
 // ==========================
 exports.createJob = async (req, res) => {
   try {
     const data = req.body;
 
+    // ==========================
     // Convert skills string to array
+    // ==========================
     if (data.skills) {
       data.skills = data.skills
         .split(",")
@@ -207,7 +230,6 @@ exports.createJob = async (req, res) => {
 
       const result = await uploadToCloudinary();
 
-      // Store Cloudinary URL in MongoDB
       data.companyLogo = result.secure_url;
 
       console.log("Cloudinary uploaded:", result.secure_url);
@@ -217,6 +239,13 @@ exports.createJob = async (req, res) => {
     // Create Job
     // ==========================
     const job = await Job.create(data);
+
+    // ==========================
+    // Generate Unique SEO Slug
+    // ==========================
+  job.slug = generateJobSlug(job);
+
+    await job.save();
 
     res.status(201).json({
       success: true,
@@ -346,6 +375,36 @@ exports.getJobById = async (req, res) => {
   }
 }; 
 
+
+// ==========================
+// Get Job By Slug
+// ==========================
+exports.getJobBySlug = async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    const job = await Job.findOne({ slug });
+
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: "Job not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      job,
+    });
+  } catch (error) {
+    console.log("Get Job By Slug Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
 
 

@@ -15,11 +15,21 @@ const JobSchema = new mongoose.Schema(
     },
 
     companyLogo: String,
+    applyLink: {
+  type: String,
+  required: false,
+},
 
     jobTitle: {
       type: String,
       required: true,
     },
+    
+    slug: {
+  type: String,
+  unique: true,
+  index: true,
+},
 
     category: String,
 

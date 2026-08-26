@@ -365,11 +365,11 @@ exports.uploadResume = async (req, res) => {
       });
     }
 
-    console.log("Resume received:", {
-      name: req.file.originalname,
-      type: req.file.mimetype,
-      size: req.file.size,
-    });
+    // console.log("Resume received:", {
+    //   name: req.file.originalname,
+    //   type: req.file.mimetype,
+    //   size: req.file.size,
+    // });
 
     // ==========================
     // Upload Resume to Cloudinary
@@ -394,8 +394,8 @@ exports.uploadResume = async (req, res) => {
       stream.end(req.file.buffer);
     });
 
-    console.log("Resume uploaded to Cloudinary:");
-    console.log(result.secure_url);
+    // console.log("Resume uploaded to Cloudinary:");
+    // console.log(result.secure_url);
 
     // ==========================
     // Save Cloudinary URL
