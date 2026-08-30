@@ -11,7 +11,7 @@ const JobSchema = new mongoose.Schema(
 
     companyEmail: {
       type: String,
-      required: true,
+      required: false,
     },
 
     companyLogo: String,
