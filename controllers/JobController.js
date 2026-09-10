@@ -162,6 +162,7 @@
 
 
 const Job = require("../models/JobModel");
+const { postJobToTelegram } = require("../utility/telegram.js");
 const cloudinary = require("../config/cloudinary");
 
 // ==========================
@@ -261,6 +262,103 @@ exports.createJob = async (req, res) => {
     });
   }
 };
+
+// exports.createJob = async (req, res) => {
+//   try {
+//     const data = req.body;
+
+//     // ==========================
+//     // Convert skills string to array
+//     // ==========================
+
+//     if (data.skills) {
+//       data.skills = data.skills
+//         .split(",")
+//         .map((item) => item.trim())
+//         .filter(Boolean);
+//     } else {
+//       data.skills = [];
+//     }
+
+//     // ==========================
+//     // Upload Company Logo
+//     // ==========================
+
+//     if (req.file) {
+//       const uploadToCloudinary = () => {
+//         return new Promise((resolve, reject) => {
+//           const stream = cloudinary.uploader.upload_stream(
+//             {
+//               folder: "workscout/company-logos",
+//               resource_type: "image",
+//             },
+//             (error, result) => {
+//               if (error) {
+//                 reject(error);
+//               } else {
+//                 resolve(result);
+//               }
+//             }
+//           );
+
+//           stream.end(req.file.buffer);
+//         });
+//       };
+
+//       const result = await uploadToCloudinary();
+
+//       data.companyLogo = result.secure_url;
+
+//       console.log("Cloudinary uploaded:", result.secure_url);
+//     }
+
+//     // ==========================
+//     // Create Job
+//     // ==========================
+
+//     const job = await Job.create(data);
+
+//     // ==========================
+//     // Generate Unique SEO Slug
+//     // ==========================
+
+//     job.slug = generateJobSlug(job);
+
+//     await job.save();
+
+//     // ==========================
+//     // Post Job to Telegram
+//     // ==========================
+
+//     try {
+//       await postJobToTelegram(job);
+
+//       console.log("✅ Job posted to Telegram successfully");
+//     } catch (telegramError) {
+//       console.error(
+//         "❌ Telegram posting failed:",
+//         telegramError.message
+//       );
+//     }
+
+//     // ==========================
+//     // Send Response
+//     // ==========================
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Job Posted Successfully",
+//       job,
+//     });
+//   } catch (error) {
+//     console.log("Create Job Error:", error);
+
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
 
 // ==========================
 // Get All Jobs
