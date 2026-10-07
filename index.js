@@ -74,6 +74,7 @@ const applicationRoutes = require("./routes/applicationRoutes");
 const userRoutes = require("./routes/UserRoutes");
 const demoInterviewRoutes = require("./routes/DemoInterviewRoutes");
 const paymentRoutes=require("./routes/paymentRoutes");
+const newsRoutes = require("./routes/newsRoutes");
 
 
 
@@ -85,6 +86,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/applications", applicationRoutes);
+app.use("/api/news", newsRoutes);
 // ================= HEALTH CHECK =================
 app.get("/", (req, res) => {
   res.send("🚀 Server running successfully");
