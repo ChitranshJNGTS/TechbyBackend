@@ -1,6 +1,7 @@
 const News = require("../models/News");
 const createSlug = require("../utility/createSlug");
 const {
+  uploadImageToCloudinary,
   uploadPdfToCloudinary,
 } = require("../config/cloudinary");
 
@@ -116,7 +117,6 @@ exports.createNews = async (req, res) => {
       excerpt,
       content,
       category,
-      image,
       author,
       readTime,
       status,
@@ -127,6 +127,10 @@ exports.createNews = async (req, res) => {
       applyLink,
     } = req.body;
 
+    // ==========================================
+    // VALIDATION
+    // ==========================================
+
     if (!title || !excerpt || !content || !category) {
       return res.status(400).json({
         success: false,
@@ -135,33 +139,74 @@ exports.createNews = async (req, res) => {
       });
     }
 
-    /*
-    ========================================================
-    GENERATE SLUG
-    ========================================================
-    */
+    // ==========================================
+    // IMAGE REQUIRED
+    // ==========================================
+
+    const imageFile = req.files?.image?.[0];
+
+    if (!imageFile) {
+      return res.status(400).json({
+        success: false,
+        message: "Cover image is required",
+      });
+    }
+
+    // ==========================================
+    // GENERATE SLUG
+    // ==========================================
 
     const slug = await generateUniqueSlug(title);
 
+    // ==========================================
+    // UPLOAD IMAGE
+    // ==========================================
 
-    /*
-    ========================================================
-    UPLOAD PDF TO CLOUDINARY
-    ========================================================
-    */
+    let imageUrl = "";
+    let imagePublicId = "";
+
+    try {
+      const imageResult =
+        await uploadImageToCloudinary(
+          imageFile.buffer,
+          imageFile.originalname
+        );
+
+      imageUrl = imageResult.secure_url;
+      imagePublicId = imageResult.public_id;
+
+    } catch (uploadError) {
+      console.error(
+        "Image Cloudinary upload error:",
+        uploadError
+      );
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to upload cover image",
+      });
+    }
+
+    // ==========================================
+    // UPLOAD PDF
+    // ==========================================
 
     let pdfUrl = "";
     let pdfPublicId = "";
 
-    if (req.file) {
+    const pdfFile = req.files?.pdf?.[0];
+
+    if (pdfFile) {
       try {
-        const result = await uploadPdfToCloudinary(
-          req.file.buffer,
-          req.file.originalname
-        );
+        const result =
+          await uploadPdfToCloudinary(
+            pdfFile.buffer,
+            pdfFile.originalname
+          );
 
         pdfUrl = result.secure_url;
         pdfPublicId = result.public_id;
+
       } catch (uploadError) {
         console.error(
           "PDF Cloudinary upload error:",
@@ -175,45 +220,67 @@ exports.createNews = async (req, res) => {
       }
     }
 
+    // ==========================================
+    // PARSE TAGS
+    // ==========================================
 
-    /*
-    ========================================================
-    CREATE NEWS
-    ========================================================
-    */
+    let parsedTags = [];
+
+    if (tags) {
+      try {
+        parsedTags = JSON.parse(tags);
+
+        if (!Array.isArray(parsedTags)) {
+          parsedTags = [];
+        }
+      } catch (error) {
+        parsedTags = [];
+      }
+    }
+
+    // ==========================================
+    // CREATE NEWS
+    // ==========================================
 
     const news = await News.create({
-      title,
+      title: title.trim(),
+
       slug,
-      excerpt,
+
+      excerpt: excerpt.trim(),
+
       content,
+
       category,
 
-      image: image || "",
+      image: imageUrl,
 
-      author: author || "TechBy",
+      imagePublicId,
 
-      readTime: readTime || "5 min",
+      author:
+        author?.trim() || "TechBy",
 
-      status: status || "draft",
+      readTime:
+        readTime?.trim() || "5 min",
+
+      status:
+        status || "draft",
 
       featured:
         featured === true ||
         featured === "true",
 
-      tags:
-        Array.isArray(tags)
-          ? tags
-          : [],
+      tags: parsedTags,
 
       seoTitle:
-        seoTitle || title,
+        seoTitle?.trim() || title.trim(),
 
       seoDescription:
-        seoDescription || excerpt,
+        seoDescription?.trim() ||
+        excerpt.trim(),
 
       applyLink:
-        applyLink || "",
+        applyLink?.trim() || "",
 
       pdfUrl,
 
@@ -225,16 +292,16 @@ exports.createNews = async (req, res) => {
           : null,
     });
 
-
-    /*
-    ========================================================
-    RESPONSE
-    ========================================================
-    */
+    // ==========================================
+    // RESPONSE
+    // ==========================================
 
     return res.status(201).json({
       success: true,
-      message: "News created successfully",
+
+      message:
+        "News created successfully",
+
       news,
     });
 
@@ -246,8 +313,12 @@ exports.createNews = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to create news",
-      error: error.message,
+
+      message:
+        "Failed to create news",
+
+      error:
+        error.message,
     });
   }
 };
