@@ -48,16 +48,15 @@
 // });
 
 // module.exports = upload;
-
-
 const multer = require("multer");
 
 const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
-
+  // =========================
+  // COMPANY LOGO
+  // =========================
   if (file.fieldname === "companyLogo") {
-
     const allowedTypes = [
       "image/jpeg",
       "image/jpg",
@@ -76,8 +75,10 @@ const fileFilter = (req, file, cb) => {
     );
   }
 
+  // =========================
+  // RESUME
+  // =========================
   if (file.fieldname === "resume") {
-
     const allowedTypes = [
       "application/pdf",
       "application/msword",
@@ -95,6 +96,22 @@ const fileFilter = (req, file, cb) => {
     );
   }
 
+  // =========================
+  // NEWS PDF
+  // =========================
+  if (file.fieldname === "pdf") {
+    if (file.mimetype === "application/pdf") {
+      return cb(null, true);
+    }
+
+    return cb(
+      new Error("Only PDF files are allowed for government notifications.")
+    );
+  }
+
+  // =========================
+  // INVALID FIELD
+  // =========================
   return cb(new Error("Invalid upload field."));
 };
 
@@ -102,7 +119,7 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024,
+    fileSize: 10 * 1024 * 1024, // 10 MB
   },
 });
 

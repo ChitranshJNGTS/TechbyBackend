@@ -23,6 +23,10 @@ const newsSchema = new mongoose.Schema(
       trim: true,
       maxlength: 500,
     },
+    applyLink: {
+  type: String,
+  default: "",
+},
 
     content: {
       type: String,
@@ -102,6 +106,15 @@ const newsSchema = new mongoose.Schema(
       trim: true,
       maxlength: 500,
     },
+    pdfUrl: {
+  type: String,
+  default: "",
+},
+
+pdfPublicId: {
+  type: String,
+  default: "",
+},
 
     publishedAt: {
       type: Date,

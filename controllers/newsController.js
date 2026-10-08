@@ -1,5 +1,8 @@
 const News = require("../models/News");
 const createSlug = require("../utility/createSlug");
+const {
+  uploadPdfToCloudinary,
+} = require("../config/cloudinary");
 
 /*
 ========================================================
@@ -41,6 +44,71 @@ CREATE NEWS
 ========================================================
 */
 
+
+
+// exports.createNews = async (req, res) => {
+//   try {
+//     const {
+//       title,
+//       excerpt,
+//       content,
+//       category,
+//       image,
+//       author,
+//       readTime,
+//       status,
+//       featured,
+//       tags,
+//       seoTitle,
+//       seoDescription,
+//     } = req.body;
+
+//     if (!title || !excerpt || !content || !category) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Title, excerpt, content and category are required",
+//       });
+//     }
+
+//     const slug = await generateUniqueSlug(title);
+
+//     const news = await News.create({
+//       title,
+//       slug,
+//       excerpt,
+//       content,
+//       category,
+//       image: image || "",
+//       author: author || "TechBy",
+//       readTime: readTime || "5 min",
+//       status: status || "draft",
+//       featured: Boolean(featured),
+//       tags: Array.isArray(tags) ? tags : [],
+//       seoTitle: seoTitle || title,
+//       seoDescription: seoDescription || excerpt,
+//       publishedAt:
+//         status === "published"
+//           ? new Date()
+//           : null,
+//     });
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "News created successfully",
+//       news,
+//     });
+//   } catch (error) {
+//     console.error("Create news error:", error);
+
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to create news",
+//       error: error.message,
+//     });
+//   }
+// };
+
+
 exports.createNews = async (req, res) => {
   try {
     const {
@@ -56,16 +124,63 @@ exports.createNews = async (req, res) => {
       tags,
       seoTitle,
       seoDescription,
+      applyLink,
     } = req.body;
 
     if (!title || !excerpt || !content || !category) {
       return res.status(400).json({
         success: false,
-        message: "Title, excerpt, content and category are required",
+        message:
+          "Title, excerpt, content and category are required",
       });
     }
 
+    /*
+    ========================================================
+    GENERATE SLUG
+    ========================================================
+    */
+
     const slug = await generateUniqueSlug(title);
+
+
+    /*
+    ========================================================
+    UPLOAD PDF TO CLOUDINARY
+    ========================================================
+    */
+
+    let pdfUrl = "";
+    let pdfPublicId = "";
+
+    if (req.file) {
+      try {
+        const result = await uploadPdfToCloudinary(
+          req.file.buffer,
+          req.file.originalname
+        );
+
+        pdfUrl = result.secure_url;
+        pdfPublicId = result.public_id;
+      } catch (uploadError) {
+        console.error(
+          "PDF Cloudinary upload error:",
+          uploadError
+        );
+
+        return res.status(500).json({
+          success: false,
+          message: "Failed to upload PDF",
+        });
+      }
+    }
+
+
+    /*
+    ========================================================
+    CREATE NEWS
+    ========================================================
+    */
 
     const news = await News.create({
       title,
@@ -73,27 +188,61 @@ exports.createNews = async (req, res) => {
       excerpt,
       content,
       category,
+
       image: image || "",
+
       author: author || "TechBy",
+
       readTime: readTime || "5 min",
+
       status: status || "draft",
-      featured: Boolean(featured),
-      tags: Array.isArray(tags) ? tags : [],
-      seoTitle: seoTitle || title,
-      seoDescription: seoDescription || excerpt,
+
+      featured:
+        featured === true ||
+        featured === "true",
+
+      tags:
+        Array.isArray(tags)
+          ? tags
+          : [],
+
+      seoTitle:
+        seoTitle || title,
+
+      seoDescription:
+        seoDescription || excerpt,
+
+      applyLink:
+        applyLink || "",
+
+      pdfUrl,
+
+      pdfPublicId,
+
       publishedAt:
         status === "published"
           ? new Date()
           : null,
     });
 
+
+    /*
+    ========================================================
+    RESPONSE
+    ========================================================
+    */
+
     return res.status(201).json({
       success: true,
       message: "News created successfully",
       news,
     });
+
   } catch (error) {
-    console.error("Create news error:", error);
+    console.error(
+      "Create news error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
