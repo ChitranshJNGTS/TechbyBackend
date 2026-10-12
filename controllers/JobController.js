@@ -531,8 +531,9 @@ exports.getJobBySlug = async (req, res) => {
 // Share Job Page
 // ==========================
 
-
-
+// ==========================
+// Share Job - WhatsApp Preview
+// ==========================
 exports.shareJob = async (req, res) => {
   try {
     const { id } = req.params;
@@ -548,37 +549,56 @@ exports.shareJob = async (req, res) => {
       process.env.FRONTEND_URL || "https://techby.in"
     ).replace(/\/+$/, "");
 
-    // Actual job page URL
+    // Actual frontend job page
     const jobUrl = job.slug
       ? `${frontendUrl}/jobs/${encodeURIComponent(job.slug)}`
       : `${frontendUrl}/jobs/${encodeURIComponent(id)}`;
 
-    // Job title and description
     const title = `${job.jobTitle || "Job Opportunity"} | TechBy`;
 
     const description =
       job.jobSummary ||
-      `Explore the ${job.jobTitle || "job opportunity"} at ${
+      `Explore ${job.jobTitle || "this job"} at ${
         job.companyName || "this company"
       } on TechBy.`;
 
-    // Use company logo for WhatsApp preview
+    // Use the uploaded company logo
     const companyLogo =
       typeof job.companyLogo === "string"
         ? job.companyLogo.trim()
         : "";
 
-    // Use the logo if it has an HTTPS URL; otherwise use fallback image
-    const image =
-      /^https:\/\/\S+$/i.test(companyLogo)
-        ? companyLogo
-        : "https://techby.in/default-job-share.png";
+    // Use fallback image if company logo URL is missing or invalid
+    const fallbackImage =
+      "https://techby.in/default-job-share.png";
 
-    // Return HTML metadata for WhatsApp, Facebook and other crawlers
+    let image = fallbackImage;
+
+    try {
+      if (companyLogo) {
+        const parsedLogoUrl = new URL(companyLogo);
+
+        if (
+          parsedLogoUrl.protocol === "https:" &&
+          parsedLogoUrl.hostname
+        ) {
+          image = parsedLogoUrl.href;
+        }
+      }
+    } catch {
+      // Keep fallback image
+    }
+
+    console.log("Job share request:", id);
+    console.log("Company logo:", companyLogo || "Missing");
+    console.log("OG image selected:", image);
+    console.log("Frontend job URL:", jobUrl);
+
+    res.status(200);
     res.set("Content-Type", "text/html; charset=utf-8");
     res.set("Cache-Control", "no-cache, no-store, must-revalidate");
 
-    return res.status(200).send(`<!DOCTYPE html>
+    return res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -588,7 +608,6 @@ exports.shareJob = async (req, res) => {
 
   <meta name="description" content="${escapeHtml(description)}">
 
-  <!-- Open Graph metadata -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="TechBy">
   <meta property="og:title" content="${escapeHtml(title)}">
@@ -600,20 +619,21 @@ exports.shareJob = async (req, res) => {
   )}">
   <meta property="og:url" content="${escapeHtml(jobUrl)}">
 
-  <!-- Twitter / X metadata -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(title)}">
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(image)}">
-
-  <!-- Redirect visitors to the actual job page -->
-  <meta http-equiv="refresh" content="0;url=${escapeHtml(jobUrl)}">
 </head>
+
 <body>
   <p>Opening job on TechBy...</p>
-  <a href="${escapeHtml(jobUrl)}">View ${escapeHtml(
-      job.jobTitle || "this job"
-    )} on TechBy</a>
+  <a href="${escapeHtml(jobUrl)}">
+    View ${escapeHtml(job.jobTitle || "this job")} on TechBy
+  </a>
+
+  <script>
+    window.location.replace(${JSON.stringify(jobUrl)});
+  </script>
 </body>
 </html>`);
   } catch (error) {
@@ -622,7 +642,9 @@ exports.shareJob = async (req, res) => {
   }
 };
 
-// Escape special characters before inserting values into HTML
+// ==========================
+// Escape HTML
+// ==========================
 function escapeHtml(value = "") {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -631,4 +653,3 @@ function escapeHtml(value = "") {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
-
