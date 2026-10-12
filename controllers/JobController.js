@@ -161,6 +161,24 @@
 // }; 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const Job = require("../models/JobModel");
 const { postJobToTelegram } = require("../utility/telegram.js");
 const cloudinary = require("../config/cloudinary");
@@ -513,6 +531,7 @@ exports.getJobBySlug = async (req, res) => {
 // Share Job Page
 // ==========================
 
+
 exports.shareJob = async (req, res) => {
   try {
     const { id } = req.params;
@@ -523,174 +542,153 @@ exports.shareJob = async (req, res) => {
       return res.status(404).send("Job not found");
     }
 
-    const frontendUrl =
-      process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = (
+      process.env.FRONTEND_URL || "https://techby.in"
+    ).replace(/\/+$/, "");
 
-    const jobUrl = `${frontendUrl}/jobs/${job._id}`;
+    // Always link to the actual SEO-friendly job slug.
+    const jobUrl = `${frontendUrl}/jobs/${encodeURIComponent(job.slug)}`;
 
-    const title = `${job.jobTitle} at ${job.companyName}`;
+    const title = `${job.jobTitle || "Job Opportunity"} at ${
+      job.companyName || "Company"
+    } | TechBy`;
 
-    const description =
-      `${job.jobSummary || "Apply for this job opportunity."} ` +
-      `${job.experience ? `Experience: ${job.experience}. ` : ""}` +
-      `${job.city ? `Location: ${job.city}, ${job.state || ""}. ` : ""}` +
-      `${job.salaryMin && job.salaryMax
-        ? `Salary: ₹${job.salaryMin.toLocaleString()} - ₹${job.salaryMax.toLocaleString()}.`
-        : ""
-      }`;
+    const description = [
+      job.jobSummary || "Explore this job opportunity on TechBy.",
+      job.experience ? `Experience: ${job.experience}.` : "",
+      job.city
+        ? `Location: ${job.city}${job.state ? `, ${job.state}` : ""}.`
+        : "",
+      job.salaryMin || job.salaryMax
+        ? `Salary: ₹${job.salaryMin?.toLocaleString("en-IN") || "0"}${
+            job.salaryMax
+              ? ` - ₹${job.salaryMax.toLocaleString("en-IN")}`
+              : ""
+          }.`
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .slice(0, 300);
+
+    // Ignore empty, missing, and literal "null" logo values.
+    const logo = job.companyLogo;
 
     const image =
-      job.companyLogo ||
-      `${frontendUrl}/default-job-image.png`;
+      typeof logo === "string" &&
+      logo.trim() !== "" &&
+      logo.trim().toLowerCase() !== "null" &&
+      /^https:\/\//i.test(logo.trim())
+        ? logo.trim()
+        : `${frontendUrl}/default-job-share.png`;
 
-    const html = `
-<!DOCTYPE html>
+    const safeTitle = escapeHtml(title);
+    const safeDescription = escapeHtml(description);
+    const safeImage = escapeHtml(image);
+    const safeJobUrl = escapeHtml(jobUrl);
+    const safeCompany = escapeHtml(job.companyName || "Company");
+    const safeJobTitle = escapeHtml(job.jobTitle || "Job Opportunity");
+
+    res.set("Cache-Control", "public, max-age=300");
+
+    res.status(200).type("html").send(`<!DOCTYPE html>
 <html lang="en">
-
 <head>
-
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>${escapeHtml(title)}</title>
+  <title>${safeTitle}</title>
+  <meta name="description" content="${safeDescription}" />
+  <link rel="canonical" href="${safeJobUrl}" />
 
-  <!-- Open Graph -->
   <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="TechBy" />
+  <meta property="og:title" content="${safeTitle}" />
+  <meta property="og:description" content="${safeDescription}" />
+  <meta property="og:image" content="${safeImage}" />
+  <meta property="og:image:alt" content="${safeCompany} logo" />
+  <meta property="og:url" content="${safeJobUrl}" />
 
-  <meta
-    property="og:title"
-    content="${escapeHtml(title)}"
-  />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${safeTitle}" />
+  <meta name="twitter:description" content="${safeDescription}" />
+  <meta name="twitter:image" content="${safeImage}" />
 
-  <meta
-    property="og:description"
-    content="${escapeHtml(description)}"
-  />
-
-  <meta
-    property="og:image"
-    content="${image}"
-  />
-
-  <meta
-    property="og:url"
-    content="${jobUrl}"
-  />
-
-  <meta
-    property="og:site_name"
-    content="WorkScout"
-  />
-
-  <!-- Twitter -->
-  <meta
-    name="twitter:card"
-    content="summary_large_image"
-  />
-
-  <meta
-    name="twitter:title"
-    content="${escapeHtml(title)}"
-  />
-
-  <meta
-    name="twitter:description"
-    content="${escapeHtml(description)}"
-  />
-
-  <meta
-    name="twitter:image"
-    content="${image}"
-  />
+  <meta http-equiv="refresh" content="1;url=${safeJobUrl}" />
 
   <style>
-
     body {
       font-family: Arial, sans-serif;
-      background: #020617;
-      color: white;
+      background: #f8fafc;
+      color: #0f172a;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
       margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
     }
-
     .container {
       max-width: 600px;
+      width: 100%;
       padding: 30px;
       text-align: center;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
     }
-
     img {
-      max-width: 200px;
-      max-height: 150px;
+      max-width: 180px;
+      max-height: 120px;
       object-fit: contain;
       margin-bottom: 20px;
     }
-
-    h1 {
-      font-size: 28px;
-    }
-
     p {
-      color: #94a3b8;
+      color: #475569;
       line-height: 1.6;
     }
-
     a {
       display: inline-block;
       margin-top: 20px;
       background: #10b981;
-      color: white;
+      color: #052e16;
       padding: 12px 24px;
       border-radius: 8px;
       text-decoration: none;
+      font-weight: bold;
     }
-
   </style>
-
 </head>
-
 <body>
-
   <div class="container">
-
-    <img
-      src="${image}"
-      alt="${escapeHtml(job.companyName)}"
-    />
-
-    <h1>
-      ${escapeHtml(job.jobTitle)}
-    </h1>
-
-    <h3>
-      ${escapeHtml(job.companyName)}
-    </h3>
-
-    <p>
-      ${escapeHtml(description)}
-    </p>
-
-    <a href="${jobUrl}">
-      View Job
-    </a>
-
+    <img src="${safeImage}" alt="${safeCompany}" />
+    <h1>${safeJobTitle}</h1>
+    <h3>${safeCompany}</h3>
+    <p>${safeDescription}</p>
+    <a href="${safeJobUrl}">View Job on TechBy</a>
+    <p>Redirecting you to the job details...</p>
   </div>
 
+  <script>
+    window.setTimeout(() => {
+      window.location.replace(${JSON.stringify(jobUrl)});
+    }, 800);
+  </script>
 </body>
-
-</html>
-`;
-
-    res.status(200).send(html);
-
-  } catch (error) {
-    console.error("Share Job Error:", error);
-
-    res.status(500).send("Unable to generate job share page");
-  }
+</html>`);
 };
+
+// Escape dynamic content before inserting it into HTML.
+function escapeHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 
 // ==========================
