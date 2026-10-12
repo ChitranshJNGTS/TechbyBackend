@@ -531,7 +531,6 @@ exports.getJobBySlug = async (req, res) => {
 // Share Job Page
 // ==========================
 
-
 exports.shareJob = async (req, res) => {
   try {
     const { id } = req.params;
@@ -546,8 +545,10 @@ exports.shareJob = async (req, res) => {
       process.env.FRONTEND_URL || "https://techby.in"
     ).replace(/\/+$/, "");
 
-    // Always link to the actual SEO-friendly job slug.
-    const jobUrl = `${frontendUrl}/jobs/${encodeURIComponent(job.slug)}`;
+    // Use the SEO-friendly job slug.
+    const jobUrl = job.slug
+      ? `${frontendUrl}/jobs/${encodeURIComponent(job.slug)}`
+      : `${frontendUrl}/jobs/${encodeURIComponent(id)}`;
 
     const title = `${job.jobTitle || "Job Opportunity"} at ${
       job.companyName || "Company"
@@ -572,14 +573,13 @@ exports.shareJob = async (req, res) => {
       .replace(/\s+/g, " ")
       .slice(0, 300);
 
-    // Ignore empty, missing, and literal "null" logo values.
     const logo = job.companyLogo;
 
     const image =
       typeof logo === "string" &&
       logo.trim() !== "" &&
       logo.trim().toLowerCase() !== "null" &&
-      /^https:\/\//i.test(logo.trim())
+      /^https?:\/\//i.test(logo.trim())
         ? logo.trim()
         : `${frontendUrl}/default-job-share.png`;
 
@@ -592,7 +592,7 @@ exports.shareJob = async (req, res) => {
 
     res.set("Cache-Control", "public, max-age=300");
 
-    res.status(200).type("html").send(`<!DOCTYPE html>
+    return res.status(200).type("html").send(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -630,6 +630,7 @@ exports.shareJob = async (req, res) => {
       padding: 20px;
       box-sizing: border-box;
     }
+
     .container {
       max-width: 600px;
       width: 100%;
@@ -639,16 +640,19 @@ exports.shareJob = async (req, res) => {
       border: 1px solid #e2e8f0;
       border-radius: 18px;
     }
+
     img {
       max-width: 180px;
       max-height: 120px;
       object-fit: contain;
       margin-bottom: 20px;
     }
+
     p {
       color: #475569;
       line-height: 1.6;
     }
+
     a {
       display: inline-block;
       margin-top: 20px;
@@ -678,23 +682,13 @@ exports.shareJob = async (req, res) => {
   </script>
 </body>
 </html>`);
+  } catch (error) {
+    console.error("Error sharing job:", error);
+    return res.status(500).send("Unable to share this job.");
+  }
 };
 
 // Escape dynamic content before inserting it into HTML.
-function escapeHtml(value = "") {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-
-// ==========================
-// HTML Escape
-// ==========================
-
 function escapeHtml(value = "") {
   return String(value)
     .replace(/&/g, "&amp;")
