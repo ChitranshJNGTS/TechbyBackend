@@ -531,10 +531,13 @@ exports.getJobBySlug = async (req, res) => {
 // Share Job Page
 // ==========================
 
+
+// ==========================
+// Share Job Page - WhatsApp Preview
+// ==========================
 exports.shareJob = async (req, res) => {
   try {
     const { id } = req.params;
-
     const job = await Job.findById(id);
 
     if (!job) {
@@ -545,7 +548,6 @@ exports.shareJob = async (req, res) => {
       process.env.FRONTEND_URL || "https://techby.in"
     ).replace(/\/+$/, "");
 
-    // Use the SEO-friendly job slug.
     const jobUrl = job.slug
       ? `${frontendUrl}/jobs/${encodeURIComponent(job.slug)}`
       : `${frontendUrl}/jobs/${encodeURIComponent(id)}`;
@@ -560,28 +562,22 @@ exports.shareJob = async (req, res) => {
       job.city
         ? `Location: ${job.city}${job.state ? `, ${job.state}` : ""}.`
         : "",
-      job.salaryMin || job.salaryMax
-        ? `Salary: ₹${job.salaryMin?.toLocaleString("en-IN") || "0"}${
-            job.salaryMax
-              ? ` - ₹${job.salaryMax.toLocaleString("en-IN")}`
-              : ""
-          }.`
-        : "",
     ]
       .filter(Boolean)
       .join(" ")
       .replace(/\s+/g, " ")
       .slice(0, 300);
 
-    const logo = job.companyLogo;
+    // Use the uploaded Cloudinary logo if available.
+    const logo =
+      typeof job.companyLogo === "string" ? job.companyLogo.trim() : "";
 
     const image =
-      typeof logo === "string" &&
-      logo.trim() !== "" &&
-      logo.trim().toLowerCase() !== "null" &&
-      /^https?:\/\//i.test(logo.trim())
-        ? logo.trim()
-        : `${frontendUrl}/default-job-share.png`;
+      /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//i.test(
+        logo
+      ) && !logo.toLowerCase().includes("null")
+        ? logo
+        : "https://techby.in/default-job-share.png";
 
     const safeTitle = escapeHtml(title);
     const safeDescription = escapeHtml(description);
@@ -590,75 +586,66 @@ exports.shareJob = async (req, res) => {
     const safeCompany = escapeHtml(job.companyName || "Company");
     const safeJobTitle = escapeHtml(job.jobTitle || "Job Opportunity");
 
-    res.set("Cache-Control", "public, max-age=300");
+    res.set({
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store, max-age=0",
+      "X-Content-Type-Options": "nosniff",
+    });
 
-    return res.status(200).type("html").send(`<!DOCTYPE html>
+    return res.status(200).send(`<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>${safeTitle}</title>
-  <meta name="description" content="${safeDescription}" />
-  <link rel="canonical" href="${safeJobUrl}" />
+  <meta name="description" content="${safeDescription}">
 
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="TechBy" />
-  <meta property="og:title" content="${safeTitle}" />
-  <meta property="og:description" content="${safeDescription}" />
-  <meta property="og:image" content="${safeImage}" />
-  <meta property="og:image:alt" content="${safeCompany} logo" />
-  <meta property="og:url" content="${safeJobUrl}" />
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="TechBy">
+  <meta property="og:title" content="${safeTitle}">
+  <meta property="og:description" content="${safeDescription}">
+  <meta property="og:image" content="${safeImage}">
+  <meta property="og:image:secure_url" content="${safeImage}">
+  <meta property="og:image:alt" content="${safeCompany} logo">
+  <meta property="og:url" content="${safeJobUrl}">
 
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${safeTitle}" />
-  <meta name="twitter:description" content="${safeDescription}" />
-  <meta name="twitter:image" content="${safeImage}" />
-
-  <meta http-equiv="refresh" content="1;url=${safeJobUrl}" />
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${safeTitle}">
+  <meta name="twitter:description" content="${safeDescription}">
+  <meta name="twitter:image" content="${safeImage}">
 
   <style>
     body {
       font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 24px;
       background: #f8fafc;
       color: #0f172a;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px;
-      box-sizing: border-box;
     }
-
-    .container {
+    main {
       max-width: 600px;
-      width: 100%;
-      padding: 30px;
+      margin: 40px auto;
+      padding: 28px;
+      background: #fff;
+      border-radius: 16px;
       text-align: center;
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 18px;
     }
-
     img {
       max-width: 180px;
       max-height: 120px;
       object-fit: contain;
-      margin-bottom: 20px;
     }
-
     p {
-      color: #475569;
       line-height: 1.6;
+      color: #475569;
     }
-
     a {
       display: inline-block;
-      margin-top: 20px;
+      margin-top: 16px;
+      padding: 12px 22px;
       background: #10b981;
       color: #052e16;
-      padding: 12px 24px;
       border-radius: 8px;
       text-decoration: none;
       font-weight: bold;
@@ -666,20 +653,13 @@ exports.shareJob = async (req, res) => {
   </style>
 </head>
 <body>
-  <div class="container">
-    <img src="${safeImage}" alt="${safeCompany}" />
+  <main>
+    <img src="${safeImage}" alt="${safeCompany} logo">
     <h1>${safeJobTitle}</h1>
-    <h3>${safeCompany}</h3>
+    <h2>${safeCompany}</h2>
     <p>${safeDescription}</p>
     <a href="${safeJobUrl}">View Job on TechBy</a>
-    <p>Redirecting you to the job details...</p>
-  </div>
-
-  <script>
-    window.setTimeout(() => {
-      window.location.replace(${JSON.stringify(jobUrl)});
-    }, 800);
-  </script>
+  </main>
 </body>
 </html>`);
   } catch (error) {
@@ -687,6 +667,7 @@ exports.shareJob = async (req, res) => {
     return res.status(500).send("Unable to share this job.");
   }
 };
+
 
 // Escape dynamic content before inserting it into HTML.
 function escapeHtml(value = "") {
