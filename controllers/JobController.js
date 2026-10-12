@@ -532,65 +532,51 @@ exports.getJobBySlug = async (req, res) => {
 // ==========================
 
 
-// ==========================
-// Share Job Page - WhatsApp Preview
-// ==========================
+
 exports.shareJob = async (req, res) => {
   try {
     const { id } = req.params;
+
     const job = await Job.findById(id);
 
     if (!job) {
       return res.status(404).send("Job not found");
     }
 
+    // Frontend website URL
     const frontendUrl = (
       process.env.FRONTEND_URL || "https://techby.in"
     ).replace(/\/+$/, "");
 
+    // Actual job page URL
     const jobUrl = job.slug
       ? `${frontendUrl}/jobs/${encodeURIComponent(job.slug)}`
       : `${frontendUrl}/jobs/${encodeURIComponent(id)}`;
 
-    const title = `${job.jobTitle || "Job Opportunity"} at ${
-      job.companyName || "Company"
-    } | TechBy`;
+    // Job title and description
+    const title = `${job.jobTitle || "Job Opportunity"} | TechBy`;
 
-    const description = [
-      job.jobSummary || "Explore this job opportunity on TechBy.",
-      job.experience ? `Experience: ${job.experience}.` : "",
-      job.city
-        ? `Location: ${job.city}${job.state ? `, ${job.state}` : ""}.`
-        : "",
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .replace(/\s+/g, " ")
-      .slice(0, 300);
+    const description =
+      job.jobSummary ||
+      `Explore the ${job.jobTitle || "job opportunity"} at ${
+        job.companyName || "this company"
+      } on TechBy.`;
 
-    // Use the uploaded Cloudinary logo if available.
-    const logo =
-      typeof job.companyLogo === "string" ? job.companyLogo.trim() : "";
+    // Use company logo for WhatsApp preview
+    const companyLogo =
+      typeof job.companyLogo === "string"
+        ? job.companyLogo.trim()
+        : "";
 
+    // Use the logo if it has an HTTPS URL; otherwise use fallback image
     const image =
-      /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//i.test(
-        logo
-      ) && !logo.toLowerCase().includes("null")
-        ? logo
+      /^https:\/\/\S+$/i.test(companyLogo)
+        ? companyLogo
         : "https://techby.in/default-job-share.png";
 
-    const safeTitle = escapeHtml(title);
-    const safeDescription = escapeHtml(description);
-    const safeImage = escapeHtml(image);
-    const safeJobUrl = escapeHtml(jobUrl);
-    const safeCompany = escapeHtml(job.companyName || "Company");
-    const safeJobTitle = escapeHtml(job.jobTitle || "Job Opportunity");
-
-    res.set({
-      "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "no-store, max-age=0",
-      "X-Content-Type-Options": "nosniff",
-    });
+    // Return HTML metadata for WhatsApp, Facebook and other crawlers
+    res.set("Content-Type", "text/html; charset=utf-8");
+    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
 
     return res.status(200).send(`<!DOCTYPE html>
 <html lang="en">
@@ -598,68 +584,36 @@ exports.shareJob = async (req, res) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>${safeTitle}</title>
-  <meta name="description" content="${safeDescription}">
+  <title>${escapeHtml(title)}</title>
 
+  <meta name="description" content="${escapeHtml(description)}">
+
+  <!-- Open Graph metadata -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="TechBy">
-  <meta property="og:title" content="${safeTitle}">
-  <meta property="og:description" content="${safeDescription}">
-  <meta property="og:image" content="${safeImage}">
-  <meta property="og:image:secure_url" content="${safeImage}">
-  <meta property="og:image:alt" content="${safeCompany} logo">
-  <meta property="og:url" content="${safeJobUrl}">
+  <meta property="og:title" content="${escapeHtml(title)}">
+  <meta property="og:description" content="${escapeHtml(description)}">
+  <meta property="og:image" content="${escapeHtml(image)}">
+  <meta property="og:image:secure_url" content="${escapeHtml(image)}">
+  <meta property="og:image:alt" content="${escapeHtml(
+    `${job.companyName || "Company"} logo`
+  )}">
+  <meta property="og:url" content="${escapeHtml(jobUrl)}">
 
+  <!-- Twitter / X metadata -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${safeTitle}">
-  <meta name="twitter:description" content="${safeDescription}">
-  <meta name="twitter:image" content="${safeImage}">
+  <meta name="twitter:title" content="${escapeHtml(title)}">
+  <meta name="twitter:description" content="${escapeHtml(description)}">
+  <meta name="twitter:image" content="${escapeHtml(image)}">
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 24px;
-      background: #f8fafc;
-      color: #0f172a;
-    }
-    main {
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 28px;
-      background: #fff;
-      border-radius: 16px;
-      text-align: center;
-    }
-    img {
-      max-width: 180px;
-      max-height: 120px;
-      object-fit: contain;
-    }
-    p {
-      line-height: 1.6;
-      color: #475569;
-    }
-    a {
-      display: inline-block;
-      margin-top: 16px;
-      padding: 12px 22px;
-      background: #10b981;
-      color: #052e16;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: bold;
-    }
-  </style>
+  <!-- Redirect visitors to the actual job page -->
+  <meta http-equiv="refresh" content="0;url=${escapeHtml(jobUrl)}">
 </head>
 <body>
-  <main>
-    <img src="${safeImage}" alt="${safeCompany} logo">
-    <h1>${safeJobTitle}</h1>
-    <h2>${safeCompany}</h2>
-    <p>${safeDescription}</p>
-    <a href="${safeJobUrl}">View Job on TechBy</a>
-  </main>
+  <p>Opening job on TechBy...</p>
+  <a href="${escapeHtml(jobUrl)}">View ${escapeHtml(
+      job.jobTitle || "this job"
+    )} on TechBy</a>
 </body>
 </html>`);
   } catch (error) {
@@ -668,8 +622,7 @@ exports.shareJob = async (req, res) => {
   }
 };
 
-
-// Escape dynamic content before inserting it into HTML.
+// Escape special characters before inserting values into HTML
 function escapeHtml(value = "") {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -678,3 +631,4 @@ function escapeHtml(value = "") {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
