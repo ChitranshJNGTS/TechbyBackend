@@ -525,120 +525,54 @@ exports.getJobBySlug = async (req, res) => {
 
 
 
-// const Job = require("../models/JobModel");
-
-// ==========================
-// Share Job Page
-// ==========================
-
-// ==========================
-// Share Job - WhatsApp Preview
-// ==========================
 exports.shareJob = async (req, res) => {
   try {
     const { id } = req.params;
-
     const job = await Job.findById(id);
 
     if (!job) {
       return res.status(404).send("Job not found");
     }
 
-    // Frontend website URL
-    const frontendUrl = (
-      process.env.FRONTEND_URL || "https://techby.in"
-    ).replace(/\/+$/, "");
+    const frontendUrl = "https://techby.in";
+    const jobUrl = `${frontendUrl}/jobs/${job.slug}`;
 
-    // Actual frontend job page
-    const jobUrl = job.slug
-      ? `${frontendUrl}/jobs/${encodeURIComponent(job.slug)}`
-      : `${frontendUrl}/jobs/${encodeURIComponent(id)}`;
-
-    const title = `${job.jobTitle || "Job Opportunity"} | TechBy`;
-
+    const title = `${job.title} | TechBy`;
     const description =
-      job.jobSummary ||
-      `Explore ${job.jobTitle || "this job"} at ${
-        job.companyName || "this company"
-      } on TechBy.`;
+      job.shortDescription ||
+      `Apply for ${job.title} on TechBy.`;
 
-    // Use the uploaded company logo
-    const companyLogo =
-      typeof job.companyLogo === "string"
-        ? job.companyLogo.trim()
-        : "";
+    const image =
+      job.companyLogo ||
+      "https://techby.in/default-job-image.jpg";
 
-    // Use fallback image if company logo URL is missing or invalid
-    const fallbackImage =
-      "https://techby.in/default-job-share.png";
+    res.set("Content-Type", "text/html");
 
-    let image = fallbackImage;
-
-    try {
-      if (companyLogo) {
-        const parsedLogoUrl = new URL(companyLogo);
-
-        if (
-          parsedLogoUrl.protocol === "https:" &&
-          parsedLogoUrl.hostname
-        ) {
-          image = parsedLogoUrl.href;
-        }
-      }
-    } catch {
-      // Keep fallback image
-    }
-
-    console.log("Job share request:", id);
-    console.log("Company logo:", companyLogo || "Missing");
-    console.log("OG image selected:", image);
-    console.log("Frontend job URL:", jobUrl);
-
-    res.status(200);
-    res.set("Content-Type", "text/html; charset=utf-8");
-    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
-
-    return res.send(`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>${escapeHtml(title)}</title>
-
-  <meta name="description" content="${escapeHtml(description)}">
-
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="TechBy">
-  <meta property="og:title" content="${escapeHtml(title)}">
-  <meta property="og:description" content="${escapeHtml(description)}">
-  <meta property="og:image" content="${escapeHtml(image)}">
-  <meta property="og:image:secure_url" content="${escapeHtml(image)}">
-  <meta property="og:image:alt" content="${escapeHtml(
-    `${job.companyName || "Company"} logo`
-  )}">
-  <meta property="og:url" content="${escapeHtml(jobUrl)}">
-
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${escapeHtml(title)}">
-  <meta name="twitter:description" content="${escapeHtml(description)}">
-  <meta name="twitter:image" content="${escapeHtml(image)}">
-</head>
-
-<body>
-  <p>Opening job on TechBy...</p>
-  <a href="${escapeHtml(jobUrl)}">
-    View ${escapeHtml(job.jobTitle || "this job")} on TechBy
-  </a>
-
-  <script>
-    window.location.replace(${JSON.stringify(jobUrl)});
-  </script>
-</body>
-</html>`);
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          <meta property="og:title" content="${title}" />
+          <meta property="og:description" content="${description}" />
+          <meta property="og:image" content="${image}" />
+          <meta property="og:url" content="${jobUrl}" />
+          <meta property="og:type" content="website" />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta http-equiv="refresh" content="0;url=${jobUrl}" />
+          <title>${title}</title>
+        </head>
+        <body>
+          <script>
+            window.location.replace(${JSON.stringify(jobUrl)});
+          </script>
+          <a href="${jobUrl}">View job on TechBy</a>
+        </body>
+      </html>
+    `);
   } catch (error) {
-    console.error("Error sharing job:", error);
-    return res.status(500).send("Unable to share this job.");
+    console.error("Share job error:", error);
+    return res.status(500).send("Unable to share job");
   }
 };
 
