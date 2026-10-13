@@ -181,7 +181,7 @@
 
 const Job = require("../models/JobModel");
 const { postJobToTelegram } = require("../utility/telegram.js");
-const cloudinary = require("../config/cloudinary");
+const { cloudinary } = require("../config/cloudinary");
 
 // ==========================
 // Create SEO Friendly Slug
